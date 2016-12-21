@@ -37,7 +37,7 @@ func NewStartCommand(dockerCli *command.DockerCli) *cobra.Command {
 		Args:  cli.RequiresMinArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.containers = args
-			return timeStart(dockerCli, &opts)
+			return runStart(dockerCli, &opts)
 		},
 	}
 
@@ -53,7 +53,7 @@ func NewStartCommand(dockerCli *command.DockerCli) *cobra.Command {
 	return cmd
 }
 
-func timeStart(dockerCli *command.DockerCli, opts *startOptions) error {
+func runStart(dockerCli *command.DockerCli, opts *startOptions) error {
 
 	var (
 		timeStart time.Time
