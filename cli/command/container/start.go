@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -36,7 +37,7 @@ func NewStartCommand(dockerCli *command.DockerCli) *cobra.Command {
 		Args:  cli.RequiresMinArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.containers = args
-			return runStart(dockerCli, &opts)
+			return timeStart(dockerCli, &opts)
 		},
 	}
 
@@ -52,7 +53,15 @@ func NewStartCommand(dockerCli *command.DockerCli) *cobra.Command {
 	return cmd
 }
 
-func runStart(dockerCli *command.DockerCli, opts *startOptions) error {
+func timeStart(dockerCli *command.DockerCli, opts *startOptions) error {
+
+	var (
+		timeStart time.Time
+		timeDone  time.Time
+	)
+
+	timeStart = time.Now()
+
 	ctx, cancelFun := context.WithCancel(context.Background())
 
 	if opts.attach || opts.openStdin {
@@ -150,12 +159,22 @@ func runStart(dockerCli *command.DockerCli, opts *startOptions) error {
 			CheckpointID:  opts.checkpoint,
 			CheckpointDir: opts.checkpointDir,
 		}
-		return dockerCli.Client().ContainerStart(ctx, container, startOptions)
+		retval := dockerCli.Client().ContainerStart(ctx, container, startOptions)
+		timeDone = time.Now()
+		fmt.Fprintf(dockerCli.Err(), "Start (Attach) Start: %s\n", timeStart.Format(time.RFC3339Nano))
+		fmt.Fprintf(dockerCli.Err(), "Start (Attach) Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+		fmt.Fprintf(dockerCli.Err(), "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+		return retval
 
 	} else {
 		// We're not going to attach to anything.
 		// Start as many containers as we want.
-		return startContainersWithoutAttachments(ctx, dockerCli, opts.containers)
+		retval := startContainersWithoutAttachments(ctx, dockerCli, opts.containers)
+		timeDone = time.Now()
+		fmt.Fprintf(dockerCli.Err(), "Start (NoAttach) Start: %s\n", timeStart.Format(time.RFC3339Nano))
+		fmt.Fprintf(dockerCli.Err(), "Start (NoAttach) Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+		fmt.Fprintf(dockerCli.Err(), "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+		return retval
 	}
 
 	return nil

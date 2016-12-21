@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -38,9 +39,21 @@ func NewKillCommand(dockerCli *command.DockerCli) *cobra.Command {
 
 func runKill(dockerCli *command.DockerCli, opts *killOptions) error {
 	var errs []string
+	var (
+		timeStart time.Time
+		timeDone  time.Time
+	)
+
+	timeStart = time.Now()
+
 	ctx := context.Background()
 	errChan := parallelOperation(ctx, opts.containers, func(ctx context.Context, container string) error {
-		return dockerCli.Client().ContainerKill(ctx, container, opts.signal)
+		retval := dockerCli.Client().ContainerKill(ctx, container, opts.signal)
+		timeDone = time.Now()
+		fmt.Fprintf(dockerCli.Err(), "Kill Start: %s\n", timeStart.Format(time.RFC3339Nano))
+		fmt.Fprintf(dockerCli.Err(), "Kill Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+		fmt.Fprintf(dockerCli.Err(), "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+		return retval
 	})
 	for _, name := range opts.containers {
 		if err := <-errChan; err != nil {

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -68,6 +69,13 @@ func NewRunCommand(dockerCli *command.DockerCli) *cobra.Command {
 }
 
 func runRun(dockerCli *command.DockerCli, flags *pflag.FlagSet, opts *runOptions, copts *runconfigopts.ContainerOptions) error {
+	var (
+		timeStart time.Time
+		timeDone  time.Time
+	)
+
+	timeStart = time.Now()
+
 	stdout, stderr, stdin := dockerCli.Out(), dockerCli.Err(), dockerCli.In()
 	client := dockerCli.Client()
 	// TODO: pass this as an argument
@@ -143,7 +151,7 @@ func runRun(dockerCli *command.DockerCli, flags *pflag.FlagSet, opts *runOptions
 	createResponse, err := createContainer(ctx, dockerCli, config, hostConfig, networkingConfig, hostConfig.ContainerIDFile, opts.name)
 	if err != nil {
 		reportError(stderr, cmdPath, err.Error(), true)
-		return runStartContainerErr(err)
+		return timeStartContainerErr(err)
 	}
 	if opts.sigProxy {
 		sigc := ForwardAllSignals(ctx, dockerCli, createResponse.ID)
@@ -228,7 +236,12 @@ func runRun(dockerCli *command.DockerCli, flags *pflag.FlagSet, opts *runOptions
 			// wait container to be removed
 			<-statusChan
 		}
-		return runStartContainerErr(err)
+		retval := timeStartContainerErr(err)
+		timeDone = time.Now()
+		fmt.Fprintf(stderr, "Run Start: %s\n", timeStart.Format(time.RFC3339Nano))
+		fmt.Fprintf(stderr, "Run Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+		fmt.Fprintf(stderr, "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+		return retval
 	}
 
 	if (config.AttachStdin || config.AttachStdout || config.AttachStderr) && config.Tty && dockerCli.Out().IsTerminal() {
@@ -270,7 +283,7 @@ func reportError(stderr io.Writer, name string, str string, withHelp bool) {
 // if container start fails with 'not found'/'no such' error, return 127
 // if container start fails with 'permission denied' error, return 126
 // return 125 for generic docker daemon failures
-func runStartContainerErr(err error) error {
+func timeStartContainerErr(err error) error {
 	trimmedErr := strings.TrimPrefix(err.Error(), "Error response from daemon: ")
 	statusError := cli.StatusError{StatusCode: 125}
 	if strings.Contains(trimmedErr, "executable file not found") ||
