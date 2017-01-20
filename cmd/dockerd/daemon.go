@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -117,6 +118,8 @@ func migrateKey(config *daemon.Config) (err error) {
 func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	stopc := make(chan bool)
 	defer close(stopc)
+
+	debug.SetMaxThreads(50000)
 
 	// warn from uuid package when running the daemon
 	uuid.Loggerf = logrus.Warnf
