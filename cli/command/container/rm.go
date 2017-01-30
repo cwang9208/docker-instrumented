@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -43,8 +44,16 @@ func NewRmCommand(dockerCli *command.DockerCli) *cobra.Command {
 
 func runRm(dockerCli *command.DockerCli, opts *rmOptions) error {
 	ctx := context.Background()
+	stderr := dockerCli.Err()
 
-	var errs []string
+	var (
+		errs []string
+		timeStart time.Time
+		timeDone  time.Time
+	)
+
+	timeStart = time.Now()
+
 	options := types.ContainerRemoveOptions{
 		RemoveVolumes: opts.rmVolumes,
 		RemoveLinks:   opts.rmLink,
@@ -69,5 +78,11 @@ func runRm(dockerCli *command.DockerCli, opts *rmOptions) error {
 	if len(errs) > 0 {
 		return fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
+	timeDone = time.Now()
+	fmt.Fprintf(stderr, "RM Start: %s\n", timeStart.Format(time.RFC3339Nano))
+	fmt.Fprintf(stderr, "RM Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+	fmt.Fprintf(stderr, "(note this is only accurate with single-container rm operations)\n")
+	fmt.Fprintf(stderr, "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+
 	return nil
 }
