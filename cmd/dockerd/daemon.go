@@ -119,7 +119,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	stopc := make(chan bool)
 	defer close(stopc)
 
-	debug.SetMaxThreads(50000)
+	debug.SetMaxThreads(100000)
 
 	// warn from uuid package when running the daemon
 	uuid.Loggerf = logrus.Warnf
