@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -32,6 +33,14 @@ func NewUnpauseCommand(dockerCli *command.DockerCli) *cobra.Command {
 }
 
 func runUnpause(dockerCli *command.DockerCli, opts *unpauseOptions) error {
+	var (
+		timeStart time.Time
+		timeDone  time.Time
+	)
+
+	timeStart = time.Now()
+	stderr := dockerCli.Err()
+
 	ctx := context.Background()
 
 	var errs []string
@@ -46,5 +55,12 @@ func runUnpause(dockerCli *command.DockerCli, opts *unpauseOptions) error {
 	if len(errs) > 0 {
 		return fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
+
+	timeDone = time.Now()
+	fmt.Fprintf(stderr, "unpause Start: %s\n", timeStart.Format(time.RFC3339Nano))
+	fmt.Fprintf(stderr, "unpause Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+	fmt.Fprintf(stderr, "(note this is only accurate with single-container rm operations)\n")
+	fmt.Fprintf(stderr, "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+
 	return nil
 }
