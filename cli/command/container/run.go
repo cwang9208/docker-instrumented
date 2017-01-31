@@ -239,16 +239,16 @@ func runRun(dockerCli *command.DockerCli, flags *pflag.FlagSet, opts *runOptions
 		return runStartContainerErr(err)
 	}
 
+	timeDone = time.Now()
+	fmt.Fprintf(stderr, "Run Start: %s\n", timeStart.Format(time.RFC3339Nano))
+	fmt.Fprintf(stderr, "Run Done:  %s\n", timeDone.Format(time.RFC3339Nano))
+	fmt.Fprintf(stderr, "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
+
 	if (config.AttachStdin || config.AttachStdout || config.AttachStderr) && config.Tty && dockerCli.Out().IsTerminal() {
 		if err := MonitorTtySize(ctx, dockerCli, createResponse.ID, false); err != nil {
 			fmt.Fprintf(stderr, "Error monitoring TTY size: %s\n", err)
 		}
 	}
-
-	timeDone = time.Now()
-	fmt.Fprintf(stderr, "Run Start: %s\n", timeStart.Format(time.RFC3339Nano))
-	fmt.Fprintf(stderr, "Run Done:  %s\n", timeDone.Format(time.RFC3339Nano))
-	fmt.Fprintf(stderr, "Duration:  %d nanoseconds\n", timeDone.Sub(timeStart).Nanoseconds())
 
 	if errCh != nil {
 		if err := <-errCh; err != nil {
